@@ -1,38 +1,96 @@
-.App {
+body {
+  background-color: #f0f2f5;
+  font-family: Arial, sans-serif;
+}
+.container {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+}
+.title {
+  font-size: 2em;
   text-align: center;
+  color: #333;
 }
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.auth-section,
+.form-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.form-group {
+  margin-bottom: 15px;
 }
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+}
+input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
   color: white;
+  cursor: pointer;
+  margin-right: 10px;
 }
-
-.App-link {
-  color: #61dafb;
+.btn-primary {
+  background: #007bff;
 }
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.btn-secondary {
+  background: #6c757d;
+}
+.btn-success {
+  background: #28a745;
+}
+.btn-warning {
+  background: #ffc107;
+  color: black;
+}
+.btn-danger {
+  background: #dc3545;
+}
+.button-group {
+  display: flex;
+  gap: 10px;
+}
+.user-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.notes-list {
+  margin-top: 20px;
+}
+.note-item {
+  display: flex;
+  justify-content: space-between;
+  background: white;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.note-title {
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 5px;
+}
+.note-meta {
+  font-size: 0.9em;
+  color: #777;
+}
+.note-actions {
+  display: flex;
+  gap: 10px;
 }
