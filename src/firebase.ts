@@ -9,7 +9,8 @@ const firebaseConfig = {
   storageBucket: "odoo-dev-cegahtipu.firebasestorage.app",
   messagingSenderId: "943933171049",
   appId: "1:943933171049:web:22d705485bdb9f03e9c9f8",
-  measurementId: "G-KX77BZEH00"
+  measurementId: "G-KX77BZEH00",
+  databaseURL: "https://odoo-dev-cegahtipu-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
