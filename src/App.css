@@ -3,7 +3,7 @@ body {
   font-family: Arial, sans-serif;
 }
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
 }
@@ -11,6 +11,18 @@ body {
   font-size: 2em;
   text-align: center;
   color: #333;
+  margin-bottom: 20px;
+}
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #28a745;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 .auth-section,
 .form-section {
@@ -28,12 +40,17 @@ body {
   margin-bottom: 5px;
   color: #555;
 }
-input {
+input,
+textarea {
   width: 100%;
   padding: 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   box-sizing: border-box;
+  font-family: Arial, sans-serif;
+}
+textarea {
+  resize: vertical;
 }
 .btn {
   padding: 10px 20px;
@@ -69,26 +86,49 @@ input {
   align-items: center;
   margin-bottom: 20px;
 }
-.notes-list {
-  margin-top: 20px;
-}
-.note-item {
+.kanban-board {
   display: flex;
   justify-content: space-between;
-  background: white;
+  gap: 20px;
+}
+.kanban-column {
+  flex: 1;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-height: 300px;
+}
+.kanban-column h2 {
+  font-size: 1.5em;
+  color: #333;
+  margin-bottom: 15px;
+  text-align: center;
+}
+.note-item {
+  background: #fff8e1;
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #ffe082;
+  position: relative;
 }
-.note-title {
-  font-weight: bold;
+.note-item h3 {
+  margin: 0 0 10px;
+  font-size: 1.2em;
   color: #333;
-  margin: 0 0 5px;
+}
+.note-item p {
+  margin: 0 0 10px;
+  color: #555;
+  white-space: pre-wrap; /* Mendukung multi-baris */
 }
 .note-meta {
   font-size: 0.9em;
   color: #777;
+  display: block;
+  margin-bottom: 10px;
 }
 .note-actions {
   display: flex;
