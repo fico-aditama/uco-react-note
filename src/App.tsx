@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./App.css";
 import {
   addNote,
   getNotes,
@@ -30,7 +29,6 @@ const App: React.FC = () => {
   const [status, setStatus] = useState<"todo" | "inprogress" | "done">("todo");
   const [editId, setEditId] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  const [darkMode, setDarkMode] = useState(false);
 
   const showNotification = (message: string) => {
     setNotification(message);
@@ -130,10 +128,6 @@ const App: React.FC = () => {
       .catch((error) => showNotification(`Gagal menghapus: ${error.message}`));
   };
 
-  const toggleDarkMode = () => {
-    setDarkMode((prev) => !prev);
-  };
-
   const columns = [
     { id: "todo", title: "To Do" },
     { id: "inprogress", title: "In Progress" },
@@ -141,98 +135,124 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className={`app-container ${darkMode ? "dark-mode" : ""}`}>
-      <header className="app-header">
+    <div className="container my-4">
+      <header className="d-flex justify-content-between align-items-center mb-4">
         <h1>Simple Notes</h1>
         {user && (
-          <>
-            <button className="btn btn-mode" onClick={toggleDarkMode}>
-              {darkMode ? "Light Mode" : "Dark Mode"}
-            </button>
-            <button className="btn btn-logout" onClick={handleLogout}>
-              Logout
-            </button>
-          </>
+          <button className="btn btn-secondary" onClick={handleLogout}>
+            Logout
+          </button>
         )}
       </header>
-      {notification && <div className="notification">{notification}</div>}
+
+      {notification && (
+        <div className="alert alert-success position-fixed top-0 end-0 m-3" style={{ zIndex: 1000 }}>
+          {notification}
+        </div>
+      )}
 
       {!user ? (
-        <div className="login-container">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="input-field"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="input-field"
-          />
-          <button className="btn btn-login" onClick={handleLogin}>
-            Login
-          </button>
-        </div>
-      ) : (
-        <div className="main-content">
-          <div className="note-form">
+        <div className="card mx-auto" style={{ maxWidth: "400px" }}>
+          <div className="card-body">
+            <h5 className="card-title">Login</h5>
             <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Judul"
-              className="input-field"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email"
+              className="form-control mb-3"
             />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Isi catatan"
-              className="input-field"
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              className="form-control mb-3"
             />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as "todo" | "inprogress" | "done")}
-              className="input-field"
-            >
-              <option value="todo">To Do</option>
-              <option value="inprogress">In Progress</option>
-              <option value="done">Done</option>
-            </select>
-            <button className="btn btn-save" onClick={editId ? handleUpdateNote : handleAddNote}>
-              {editId ? "Update" : "Tambah"}
+            <button className="btn btn-primary w-100" onClick={handleLogin}>
+              Login
             </button>
           </div>
+        </div>
+      ) : (
+        <div>
+          <div className="card mb-4">
+            <div className="card-body">
+              <h5 className="card-title">{editId ? "Edit Catatan" : "Tambah Catatan"}</h5>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Judul"
+                className="form-control mb-3"
+              />
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Isi catatan"
+                className="form-control mb-3"
+                rows={3}
+              />
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as "todo" | "inprogress" | "done")}
+                className="form-select mb-3"
+              >
+                <option value="todo">To Do</option>
+                <option value="inprogress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+              <button
+                className="btn btn-success w-100"
+                onClick={editId ? handleUpdateNote : handleAddNote}
+              >
+                {editId ? "Update" : "Tambah"}
+              </button>
+            </div>
+          </div>
 
-          <div className="notes-board">
+          <div className="row">
             {columns.map((column) => {
               const columnNotes = Object.entries(notes).filter(([, note]) => note.status === column.id);
               return (
-                <div key={column.id} className="notes-column">
-                  <h2>{column.title} ({columnNotes.length})</h2>
-                  {columnNotes.length > 0 ? (
-                    columnNotes.map(([id, note]) => (
-                      <div key={id} className="note-card">
-                        <h3>{note.title}</h3>
-                        <p>{note.content}</p>
-                        <div className="note-meta">
-                          {note.author} • {new Date(note.timestamp).toLocaleDateString()}
-                        </div>
-                        <div className="note-actions">
-                          <button className="btn btn-edit" onClick={() => handleEditNote(id, note)}>
-                            Edit
-                          </button>
-                          <button className="btn btn-delete" onClick={() => handleDeleteNote(id)}>
-                            Hapus
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="empty-text">Tidak ada catatan</p>
-                  )}
+                <div key={column.id} className="col-md-4">
+                  <div className="card">
+                    <div className="card-header">
+                      <h5>
+                        {column.title} ({columnNotes.length})
+                      </h5>
+                    </div>
+                    <div className="card-body">
+                      {columnNotes.length > 0 ? (
+                        columnNotes.map(([id, note]) => (
+                          <div key={id} className="card mb-2">
+                            <div className="card-body">
+                              <h6 className="card-title">{note.title}</h6>
+                              <p className="card-text">{note.content}</p>
+                              <p className="card-text text-muted">
+                                {note.author} • {new Date(note.timestamp).toLocaleDateString()}
+                              </p>
+                              <div className="d-flex gap-2">
+                                <button
+                                  className="btn btn-warning btn-sm"
+                                  onClick={() => handleEditNote(id, note)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleDeleteNote(id)}
+                                >
+                                  Hapus
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted text-center">Tidak ada catatan</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               );
             })}
