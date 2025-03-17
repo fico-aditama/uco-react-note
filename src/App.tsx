@@ -7,6 +7,7 @@ import {
   loginUser,
   logoutUser,
   authStateChanged,
+  registerUser,
 } from "./firebase";
 
 interface Note {
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [notes, setNotes] = useState<Record<string, Note>>({});
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -64,6 +66,21 @@ const App: React.FC = () => {
         setPassword("");
       })
       .catch((error) => showNotification(`Gagal login: ${error.message}`));
+  };
+
+  const handleRegister = () => {
+    if (!email || !password) {
+      showNotification("Email dan password harus diisi!");
+      return;
+    }
+    registerUser(email, password)
+      .then((userCredential) => {
+        setUser(userCredential.user);
+        setEmail("");
+        setPassword("");
+        showNotification("Registrasi berhasil! Anda sudah login.");
+      })
+      .catch((error) => showNotification(`Gagal registrasi: ${error.message}`));
   };
 
   const handleLogout = () => {
@@ -154,7 +171,7 @@ const App: React.FC = () => {
       {!user ? (
         <div className="card mx-auto" style={{ maxWidth: "400px" }}>
           <div className="card-body">
-            <h5 className="card-title">Login</h5>
+            <h5 className="card-title">{isRegistering ? "Registrasi" : "Login"}</h5>
             <input
               type="email"
               value={email}
@@ -169,8 +186,17 @@ const App: React.FC = () => {
               placeholder="Password"
               className="form-control mb-3"
             />
-            <button className="btn btn-primary w-100" onClick={handleLogin}>
-              Login
+            <button
+              className="btn btn-primary w-100 mb-2"
+              onClick={isRegistering ? handleRegister : handleLogin}
+            >
+              {isRegistering ? "Daftar" : "Login"}
+            </button>
+            <button
+              className="btn btn-link w-100"
+              onClick={() => setIsRegistering(!isRegistering)}
+            >
+              {isRegistering ? "Sudah punya akun? Login" : "Belum punya akun? Daftar"}
             </button>
           </div>
         </div>
