@@ -3,14 +3,14 @@ import { getDatabase, ref, push, onValue, update, remove } from "firebase/databa
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDNt19uhUipfFb6_ii-89pn1-6TUdULQOo",
-  authDomain: "odoo-dev-cegahtipu.firebaseapp.com",
-  projectId: "odoo-dev-cegahtipu",
-  storageBucket: "odoo-dev-cegahtipu.firebasestorage.app",
-  messagingSenderId: "943933171049",
-  appId: "1:943933171049:web:22d705485bdb9f03e9c9f8",
-  measurementId: "G-KX77BZEH00",
-  databaseURL: "https://odoo-dev-cegahtipu-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey: "xxxxx",
+  authDomain: "xxxxx",
+  projectId: "xxxxx",
+  storageBucket: "xxxxx",
+  messagingSenderId: "xxxxx",
+  appId: "xxxxx",
+  measurementId: "xxxxx",
+  databaseURL: "xxxxx"
 };
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
