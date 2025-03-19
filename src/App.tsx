@@ -8,6 +8,7 @@ import {
   logoutUser,
   authStateChanged,
   registerUser,
+  sendVerificationEmail,
 } from "./firebase";
 
 interface Note {
@@ -34,13 +35,18 @@ const App: React.FC = () => {
 
   const showNotification = (message: string) => {
     setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
+    setTimeout(() => setNotification(null), 5000); // Notifikasi lebih lama (5 detik)
   };
 
   useEffect(() => {
     authStateChanged((currentUser) => {
       setUser(currentUser);
-      if (currentUser) showNotification(`Selamat datang, ${currentUser.email}!`);
+      if (currentUser && currentUser.emailVerified) {
+        showNotification(`Selamat datang, ${currentUser.email}!`);
+      } else if (currentUser && !currentUser.emailVerified) {
+        showNotification("Silakan verifikasi email Anda terlebih dahulu.");
+        logoutUser(); // Logout jika email belum diverifikasi
+      }
     });
     const unsubscribe = getNotes((data) => {
       const notesData = data || {};
@@ -61,11 +67,25 @@ const App: React.FC = () => {
     }
     loginUser(email, password)
       .then((userCredential) => {
-        setUser(userCredential.user);
-        setEmail("");
-        setPassword("");
+        const currentUser = userCredential.user;
+        if (!currentUser.emailVerified) {
+          showNotification("Email belum diverifikasi. Silakan cek email Anda.");
+          logoutUser();
+        } else {
+          setUser(currentUser);
+          setEmail("");
+          setPassword("");
+        }
       })
-      .catch((error) => showNotification(`Gagal login: ${error.message}`));
+      .catch((error) => {
+        if (error.code === "auth/user-not-found") {
+          showNotification("Akun tidak ditemukan!");
+        } else if (error.code === "auth/wrong-password") {
+          showNotification("Password salah!");
+        } else {
+          showNotification(`Gagal login: ${error.message}`);
+        }
+      });
   };
 
   const handleRegister = () => {
@@ -75,10 +95,16 @@ const App: React.FC = () => {
     }
     registerUser(email, password)
       .then((userCredential) => {
-        setUser(userCredential.user);
-        setEmail("");
-        setPassword("");
-        showNotification("Registrasi berhasil! Anda sudah login.");
+        const newUser = userCredential.user;
+        sendVerificationEmail(newUser)
+          .then(() => {
+            showNotification("Email verifikasi telah dikirim. Silakan cek inbox Anda.");
+            setEmail("");
+            setPassword("");
+            setIsRegistering(false);
+            logoutUser(); // Logout setelah registrasi agar pengguna harus verifikasi dulu
+          })
+          .catch((error) => showNotification(`Gagal mengirim email verifikasi: ${error.message}`));
       })
       .catch((error) => showNotification(`Gagal registrasi: ${error.message}`));
   };

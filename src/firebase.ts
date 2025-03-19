@@ -1,6 +1,13 @@
 import { initializeApp } from "firebase/app";
-import { getDatabase, ref, push, onValue, update, remove } from "firebase/database";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendEmailVerification,
+} from "firebase/auth";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "xxxxx",
@@ -13,22 +20,22 @@ const firebaseConfig = {
   databaseURL: "xxxxx"
 };
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-export const registerUser = (email: string, password: string) =>
-  createUserWithEmailAndPassword(auth, email, password);
-export const loginUser = (email: string, password: string) =>
-  signInWithEmailAndPassword(auth, email, password);
+export const loginUser = (email, password) => signInWithEmailAndPassword(auth, email, password);
 export const logoutUser = () => signOut(auth);
-export const authStateChanged = (callback: (user: any) => void) =>
-  onAuthStateChanged(auth, callback);
+export const authStateChanged = (callback) => onAuthStateChanged(auth, callback);
+export const registerUser = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+export const sendVerificationEmail = (user) => sendEmailVerification(user);
 
-export const addNote = (noteData: any) => push(ref(db, "notes/global"), noteData);
-export const getNotes = (callback: (notes: any) => void) =>
-  onValue(ref(db, "notes/global"), (snapshot) => callback(snapshot.val()));
-export const updateNote = (noteId: string, updatedData: any) =>
-  update(ref(db, `notes/global/${noteId}`), updatedData);
-export const deleteNote = (noteId: string) => remove(ref(db, `notes/global/${noteId}`));
-
-export default db;
+export const addNote = (note) => addDoc(collection(db, "notes"), note);
+export const getNotes = (callback) => {
+  return onSnapshot(collection(db, "notes"), (snapshot) => {
+    const notesData = {};
+    snapshot.forEach((doc) => (notesData[doc.id] = doc.data()));
+    callback(notesData);
+  });
+};
+export const updateNote = (id, note) => updateDoc(doc(db, "notes", id), note);
+export const deleteNote = (id) => deleteDoc(doc(db, "notes", id));
