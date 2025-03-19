@@ -6,19 +6,21 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
-  User,
-  UserCredential,
+  sendPasswordResetEmail,
 } from "firebase/auth";
-import {
-  getFirestore,
-  collection,
-  onSnapshot,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  doc,
-  DocumentData,
-} from "firebase/firestore";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  timestamp: string;
+  uid: string;
+  status: "todo" | "inprogress" | "done";
+  category?: string; // New: Categories
+  pinned?: boolean;  // New: Pinning
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyDNt19uhUipfFb6_ii-89pn1-6TUdULQOo",
@@ -31,43 +33,28 @@ const firebaseConfig = {
   measurementId: "G-KX77BZEH00"
 };
 
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-export interface Note {
-  title: string;
-  content: string;
-  author: string;
-  timestamp: string;
-  uid: string;
-  status: "todo" | "inprogress" | "done";
-}
-
-export const loginUser = (email: string, password: string): Promise<UserCredential> =>
-  signInWithEmailAndPassword(auth, email, password);
-
-export const logoutUser = (): Promise<void> => signOut(auth);
-
-export const authStateChanged = (callback: (user: User | null) => void): (() => void) =>
+export const loginUser = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password);
+export const logoutUser = () => signOut(auth);
+export const authStateChanged = (callback: (user: import("firebase/auth").User | null) => void) =>
   onAuthStateChanged(auth, callback);
+export const registerUser = (email: string, password: string) => createUserWithEmailAndPassword(auth, email, password);
+export const sendVerificationEmail = (user: import("firebase/auth").User) => sendEmailVerification(user);
+export const sendResetPasswordEmail = (email: string) => sendPasswordResetEmail(auth, email);
 
-export const registerUser = (email: string, password: string): Promise<UserCredential> =>
-  createUserWithEmailAndPassword(auth, email, password);
-
-export const sendVerificationEmail = (user: User): Promise<void> => sendEmailVerification(user);
-
-export const addNote = (note: Note): Promise<DocumentData> => addDoc(collection(db, "notes"), note);
-
-export const getNotes = (callback: (notes: Record<string, Note>) => void): (() => void) => {
+export const addNote = (note: Omit<Note, "id">) => addDoc(collection(db, "notes"), note);
+export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
   return onSnapshot(collection(db, "notes"), (snapshot) => {
     const notesData: Record<string, Note> = {};
-    snapshot.forEach((doc) => (notesData[doc.id] = doc.data() as Note));
+    snapshot.forEach((doc) => {
+      notesData[doc.id] = { id: doc.id, ...doc.data() } as Note;
+    });
     callback(notesData);
   });
 };
-
-export const updateNote = (id: string, note: Partial<Note>): Promise<void> =>
-  updateDoc(doc(db, "notes", id), note);
-
-export const deleteNote = (id: string): Promise<void> => deleteDoc(doc(db, "notes", id));
+export const updateNote = (id: string, note: Partial<Note>) => updateDoc(doc(db, "notes", id), note);
+export const deleteNote = (id: string) => deleteDoc(doc(db, "notes", id));
