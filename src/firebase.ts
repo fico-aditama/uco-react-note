@@ -7,8 +7,9 @@ import {
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail,
+  updateProfile as updateAuthProfile,
 } from "firebase/auth";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
 
 export interface Note {
   id: string;
@@ -18,8 +19,14 @@ export interface Note {
   timestamp: string;
   uid: string;
   status: "todo" | "inprogress" | "done";
-  category?: string; // New: Categories
-  pinned?: boolean;  // New: Pinning
+  category?: string;
+  pinned?: boolean;
+}
+
+export interface UserProfile {
+  uid: string;
+  displayName?: string;
+  email: string;
 }
 
 const firebaseConfig = {
@@ -33,7 +40,6 @@ const firebaseConfig = {
   measurementId: "G-KX77BZEH00"
 };
 
-
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -46,7 +52,13 @@ export const registerUser = (email: string, password: string) => createUserWithE
 export const sendVerificationEmail = (user: import("firebase/auth").User) => sendEmailVerification(user);
 export const sendResetPasswordEmail = (email: string) => sendPasswordResetEmail(auth, email);
 
-export const addNote = (note: Omit<Note, "id">) => addDoc(collection(db, "notes"), note);
+export const addNote = (note: Omit<Note, "id">) => {
+  const cleanedNote = Object.fromEntries(
+    Object.entries(note).filter(([, value]) => value !== undefined)
+  ) as Omit<Note, "id">;
+  return addDoc(collection(db, "notes"), cleanedNote);
+};
+
 export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
   return onSnapshot(collection(db, "notes"), (snapshot) => {
     const notesData: Record<string, Note> = {};
@@ -56,5 +68,20 @@ export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
     callback(notesData);
   });
 };
-export const updateNote = (id: string, note: Partial<Note>) => updateDoc(doc(db, "notes", id), note);
+
+export const updateNote = (id: string, note: Partial<Note>) => {
+  const cleanedNote = Object.fromEntries(
+    Object.entries(note).filter(([, value]) => value !== undefined)
+  ) as Partial<Note>;
+  return updateDoc(doc(db, "notes", id), cleanedNote);
+};
+
 export const deleteNote = (id: string) => deleteDoc(doc(db, "notes", id));
+
+// Profile Functions
+export const setUserProfile = (uid: string, profile: UserProfile) => setDoc(doc(db, "users", uid), profile);
+export const getUserProfile = (uid: string) => getDoc(doc(db, "users", uid)).then((doc) => doc.data() as UserProfile);
+export const updateUserProfile = (uid: string, profile: Partial<UserProfile>) =>
+  updateDoc(doc(db, "users", uid), profile);
+export const updateAuthDisplayName = (user: import("firebase/auth").User, displayName: string) =>
+  updateAuthProfile(user, { displayName });

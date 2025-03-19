@@ -10,6 +10,10 @@ import {
   registerUser,
   sendVerificationEmail,
   sendResetPasswordEmail,
+  setUserProfile,
+  getUserProfile,
+  updateUserProfile,
+  updateAuthDisplayName,
   Note,
 } from "./firebase";
 import { User } from "firebase/auth";
@@ -33,6 +37,8 @@ const App: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [deletedNote, setDeletedNote] = useState<{ id: string; note: Note } | null>(null);
   const [previewNote, setPreviewNote] = useState<Note | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [displayName, setDisplayName] = useState("");
 
   const showNotification = (message: string, type: "success" | "error" = "success") => {
     setNotification({ message, type });
@@ -44,6 +50,9 @@ const App: React.FC = () => {
       setUser(currentUser);
       if (currentUser && currentUser.emailVerified) {
         showNotification(`Welcome, ${currentUser.email}!`);
+        getUserProfile(currentUser.uid).then((profile) => {
+          setDisplayName(profile?.displayName || "");
+        });
       } else if (currentUser && !currentUser.emailVerified) {
         showNotification("Please verify your email first.", "error");
         logoutUser();
@@ -94,6 +103,7 @@ const App: React.FC = () => {
     registerUser(email, password)
       .then((userCredential) => {
         const newUser = userCredential.user;
+        setUserProfile(newUser.uid, { uid: newUser.uid, email: newUser.email! });
         sendVerificationEmail(newUser)
           .then(() => {
             showNotification("Verification email sent. Check your inbox.");
@@ -143,16 +153,20 @@ const App: React.FC = () => {
       return;
     }
     if (user) {
-      addNote({
+      const noteData: Omit<Note, "id"> = {
         title,
         content,
         author: user.email!,
         timestamp: new Date().toISOString(),
         uid: user.uid,
         status,
-        category: category || undefined,
+        ...(category && { category }),
         pinned: false,
-      })
+      };
+      console.log("User UID:", user.uid); // Debug: Check UID
+      console.log("User Authenticated:", !!user); // Debug: Confirm user exists
+      console.log("Note Data:", noteData); // Debug: Check data
+      addNote(noteData)
         .then(() => {
           setTitle("");
           setContent("");
@@ -160,10 +174,14 @@ const App: React.FC = () => {
           setCategory("");
           showNotification("Note added!");
         })
-        .catch((error) => showNotification(`Failed to add: ${error.message}`, "error"));
+        .catch((error) => {
+          console.error("Add Note Error:", error); // Debug: Full error details
+          showNotification(`Failed to add: ${error.message}`, "error");
+        });
+    } else {
+      showNotification("User not authenticated!", "error");
     }
   };
-
   const handleEditNote = (id: string, note: Note) => {
     setEditId(id);
     setTitle(note.title);
@@ -202,7 +220,7 @@ const App: React.FC = () => {
 
   const handleUndoDelete = () => {
     if (deletedNote) {
-      const { id, ...noteWithoutId } = deletedNote.note; // Destructure to exclude id
+      const { id, ...noteWithoutId } = deletedNote.note;
       addNote(noteWithoutId)
         .then(() => {
           setDeletedNote(null);
@@ -211,6 +229,7 @@ const App: React.FC = () => {
         .catch((error) => showNotification(`Undo failed: ${error.message}`, "error"));
     }
   };
+
   const handlePinNote = (id: string) => {
     updateNote(id, { pinned: !notes[id].pinned })
       .then(() => showNotification(`Note ${notes[id].pinned ? "unpinned" : "pinned"}!`))
@@ -250,6 +269,18 @@ const App: React.FC = () => {
     }
   };
 
+  const handleUpdateProfile = () => {
+    if (user) {
+      updateAuthDisplayName(user, displayName)
+        .then(() => {
+          updateUserProfile(user.uid, { displayName });
+          showNotification("Profile updated!");
+          setShowSettings(false);
+        })
+        .catch((error) => showNotification(`Profile update failed: ${error.message}`, "error"));
+    }
+  };
+
   const filteredNotes = Object.entries(notes)
     .filter(([, note]) => note.uid === user?.uid)
     .filter(([, note]) => filterStatus === "all" || note.status === filterStatus)
@@ -264,7 +295,6 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen ${darkMode ? "bg-gray-900 text-white" : "bg-gray-100 text-gray-900"} transition-colors duration-300`}>
-      {/* Notification */}
       {notification && (
         <div
           className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${notification.type === "success" ? "bg-green-500" : "bg-red-500"} text-white animate-slide-in`}
@@ -274,12 +304,12 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Header */}
       <header className="container mx-auto p-6 flex justify-between items-center">
         <h1 className="text-3xl font-extrabold tracking-tight">Notes</h1>
         <div className="flex items-center gap-4">
           {user && (
             <>
+              <span className="text-sm">{displayName || user.email}</span>
               <button
                 className="p-2 bg-gray-700 text-white rounded-full hover:bg-gray-800 transition"
                 onClick={() => setDarkMode(!darkMode)}
@@ -288,6 +318,12 @@ const App: React.FC = () => {
               </button>
               <button
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                onClick={() => setShowSettings(true)}
+              >
+                Settings
+              </button>
+              <button
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
                 onClick={handleLogout}
               >
                 Logout
@@ -297,7 +333,6 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <div className="container mx-auto p-6">
         {!user ? (
           <div className="max-w-md mx-auto bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg transform transition-all hover:scale-105">
@@ -362,7 +397,6 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {/* Note Creation */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 transform transition-all hover:scale-105">
               <h3 className="text-xl font-semibold mb-4">{editId ? "Edit Note" : "Add Note"}</h3>
               <input
@@ -397,13 +431,12 @@ const App: React.FC = () => {
               </div>
               <button
                 className="w-full p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-                onClick={editId ? handleUpdateNote : handleAddNote}
+                onClick={handleAddNote}
               >
                 {editId ? "Update" : "Add"}
               </button>
             </div>
 
-            {/* Tools */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
               <input
                 value={searchQuery}
@@ -441,7 +474,6 @@ const App: React.FC = () => {
               </label>
             </div>
 
-            {/* Notes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {columns.map((column) => {
                 const columnNotes = filteredNotes.filter(([, note]) => note.status === column.id);
@@ -503,7 +535,6 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Preview Modal */}
       {previewNote && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-lg w-full transform transition-all scale-95 animate-modal-in">
@@ -519,6 +550,34 @@ const App: React.FC = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {showSettings && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full transform transition-all scale-95 animate-modal-in">
+            <h3 className="text-2xl font-bold mb-4">Profile Settings</h3>
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Display Name"
+              className="w-full p-3 mb-4 border rounded-lg dark:bg-gray-700 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            />
+            <div className="flex gap-4">
+              <button
+                className="flex-1 p-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                onClick={handleUpdateProfile}
+              >
+                Save
+              </button>
+              <button
+                className="flex-1 p-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+                onClick={() => setShowSettings(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
