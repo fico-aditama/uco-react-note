@@ -6,6 +6,7 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
+  sendPasswordResetEmail,
   browserLocalPersistence,
   setPersistence,
 } from "firebase/auth";
@@ -19,6 +20,8 @@ export interface Note {
   timestamp: string;
   uid: string;
   status: "todo" | "inprogress" | "done";
+  category?: string;
+  pinned?: boolean;
 }
 
 // Replace with your actual Firebase config
@@ -37,7 +40,6 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
-// Set persistence to keep user logged in
 setPersistence(auth, browserLocalPersistence)
   .then(() => console.log("Persistence set to local"))
   .catch((error) => console.error("Persistence error:", error));
@@ -55,17 +57,18 @@ export const registerUser = (email: string, password: string) =>
 
 export const sendVerificationEmail = (user: import("firebase/auth").User) => {
   const actionCodeSettings = {
-    url: "http://localhost:3000/", // Redirect to login page after verification
+    url: "http://localhost:3000/",
     handleCodeInApp: true,
   };
   return sendEmailVerification(user, actionCodeSettings);
 };
 
+export const sendResetPasswordEmail = (email: string) =>
+  sendPasswordResetEmail(auth, email);
+
 export const addNote = (note: Omit<Note, "id">) => {
-  console.log("Adding note:", note);
-  console.log("Current User:", auth.currentUser);
   const notesRef = ref(db, "notes");
-  return push(notesRef, note); // Push creates a unique ID
+  return push(notesRef, note);
 };
 
 export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
