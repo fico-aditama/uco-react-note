@@ -6,10 +6,10 @@ import {
   signOut,
   onAuthStateChanged,
   sendEmailVerification,
-  sendPasswordResetEmail,
-  updateProfile as updateAuthProfile,
+  browserLocalPersistence,
+  setPersistence,
 } from "firebase/auth";
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, setDoc, getDoc } from "firebase/firestore";
+import { getDatabase, ref, push, onValue, update, remove } from "firebase/database";
 
 export interface Note {
   id: string;
@@ -19,16 +19,9 @@ export interface Note {
   timestamp: string;
   uid: string;
   status: "todo" | "inprogress" | "done";
-  category?: string;
-  pinned?: boolean;
 }
 
-export interface UserProfile {
-  uid: string;
-  displayName?: string;
-  email: string;
-}
-
+// Replace with your actual Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDNt19uhUipfFb6_ii-89pn1-6TUdULQOo",
   authDomain: "odoo-dev-cegahtipu.firebaseapp.com",
@@ -42,46 +35,59 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getDatabase(app);
 
-export const loginUser = (email: string, password: string) => signInWithEmailAndPassword(auth, email, password);
+// Set persistence to keep user logged in
+setPersistence(auth, browserLocalPersistence)
+  .then(() => console.log("Persistence set to local"))
+  .catch((error) => console.error("Persistence error:", error));
+
+export const loginUser = (email: string, password: string) =>
+  signInWithEmailAndPassword(auth, email, password);
+
 export const logoutUser = () => signOut(auth);
+
 export const authStateChanged = (callback: (user: import("firebase/auth").User | null) => void) =>
   onAuthStateChanged(auth, callback);
-export const registerUser = (email: string, password: string) => createUserWithEmailAndPassword(auth, email, password);
-export const sendVerificationEmail = (user: import("firebase/auth").User) => sendEmailVerification(user);
-export const sendResetPasswordEmail = (email: string) => sendPasswordResetEmail(auth, email);
+
+export const registerUser = (email: string, password: string) =>
+  createUserWithEmailAndPassword(auth, email, password);
+
+export const sendVerificationEmail = (user: import("firebase/auth").User) => {
+  const actionCodeSettings = {
+    url: "http://localhost:3000/", // Redirect to login page after verification
+    handleCodeInApp: true,
+  };
+  return sendEmailVerification(user, actionCodeSettings);
+};
 
 export const addNote = (note: Omit<Note, "id">) => {
-  const cleanedNote = Object.fromEntries(
-    Object.entries(note).filter(([, value]) => value !== undefined)
-  ) as Omit<Note, "id">;
-  return addDoc(collection(db, "notes"), cleanedNote);
+  console.log("Adding note:", note);
+  console.log("Current User:", auth.currentUser);
+  const notesRef = ref(db, "notes");
+  return push(notesRef, note); // Push creates a unique ID
 };
 
 export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
-  return onSnapshot(collection(db, "notes"), (snapshot) => {
+  const notesRef = ref(db, "notes");
+  return onValue(notesRef, (snapshot) => {
+    const data = snapshot.val();
     const notesData: Record<string, Note> = {};
-    snapshot.forEach((doc) => {
-      notesData[doc.id] = { id: doc.id, ...doc.data() } as Note;
-    });
+    if (data) {
+      Object.entries(data).forEach(([id, note]: [string, any]) => {
+        notesData[id] = { id, ...note } as Note;
+      });
+    }
     callback(notesData);
   });
 };
 
 export const updateNote = (id: string, note: Partial<Note>) => {
-  const cleanedNote = Object.fromEntries(
-    Object.entries(note).filter(([, value]) => value !== undefined)
-  ) as Partial<Note>;
-  return updateDoc(doc(db, "notes", id), cleanedNote);
+  const noteRef = ref(db, `notes/${id}`);
+  return update(noteRef, note);
 };
 
-export const deleteNote = (id: string) => deleteDoc(doc(db, "notes", id));
-
-// Profile Functions
-export const setUserProfile = (uid: string, profile: UserProfile) => setDoc(doc(db, "users", uid), profile);
-export const getUserProfile = (uid: string) => getDoc(doc(db, "users", uid)).then((doc) => doc.data() as UserProfile);
-export const updateUserProfile = (uid: string, profile: Partial<UserProfile>) =>
-  updateDoc(doc(db, "users", uid), profile);
-export const updateAuthDisplayName = (user: import("firebase/auth").User, displayName: string) =>
-  updateAuthProfile(user, { displayName });
+export const deleteNote = (id: string) => {
+  const noteRef = ref(db, `notes/${id}`);
+  return remove(noteRef);
+};
