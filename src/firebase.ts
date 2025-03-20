@@ -1,34 +1,96 @@
 import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
+  browserLocalPersistence,
+  setPersistence,
+} from "firebase/auth";
 import { getDatabase, ref, push, onValue, update, remove } from "firebase/database";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  timestamp: string;
+  uid: string;
+  status: "todo" | "inprogress" | "done";
+  category?: string;
+  pinned?: boolean;
+}
+
+// Replace with your actual Firebase config
 const firebaseConfig = {
-  apiKey: "xxxxx",
-  authDomain: "xxxxx",
-  projectId: "xxxxx",
-  storageBucket: "xxxxx",
-  messagingSenderId: "xxxxx",
-  appId: "xxxxx",
-  measurementId: "xxxxx",
-  databaseURL: "xxxxx"
+  apiKey: "AIzaSyDNt19uhUipfFb6_ii-89pn1-6TUdULQOo",
+  authDomain: "odoo-dev-cegahtipu.firebaseapp.com",
+  databaseURL: "https://odoo-dev-cegahtipu-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "odoo-dev-cegahtipu",
+  storageBucket: "odoo-dev-cegahtipu.firebasestorage.app",
+  messagingSenderId: "943933171049",
+  appId: "1:943933171049:web:22d705485bdb9f03e9c9f8",
+  measurementId: "G-KX77BZEH00"
 };
+
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
 const auth = getAuth(app);
+const db = getDatabase(app);
+
+setPersistence(auth, browserLocalPersistence)
+  .then(() => console.log("Persistence set to local"))
+  .catch((error) => console.error("Persistence error:", error));
+
+export const loginUser = (email: string, password: string) =>
+  signInWithEmailAndPassword(auth, email, password);
+
+export const logoutUser = () => signOut(auth);
+
+export const authStateChanged = (callback: (user: import("firebase/auth").User | null) => void) =>
+  onAuthStateChanged(auth, callback);
 
 export const registerUser = (email: string, password: string) =>
   createUserWithEmailAndPassword(auth, email, password);
-export const loginUser = (email: string, password: string) =>
-  signInWithEmailAndPassword(auth, email, password);
-export const logoutUser = () => signOut(auth);
-export const authStateChanged = (callback: (user: any) => void) =>
-  onAuthStateChanged(auth, callback);
 
-export const addNote = (noteData: any) => push(ref(db, "notes/global"), noteData);
-export const getNotes = (callback: (notes: any) => void) =>
-  onValue(ref(db, "notes/global"), (snapshot) => callback(snapshot.val()));
-export const updateNote = (noteId: string, updatedData: any) =>
-  update(ref(db, `notes/global/${noteId}`), updatedData);
-export const deleteNote = (noteId: string) => remove(ref(db, `notes/global/${noteId}`));
+export const sendVerificationEmail = (user: import("firebase/auth").User) => {
+  const actionCodeSettings = {
+    url: "http://localhost:3000/",
+    handleCodeInApp: true,
+  };
+  return sendEmailVerification(user, actionCodeSettings);
+};
 
-export default db;
+export const sendResetPasswordEmail = (email: string) =>
+  sendPasswordResetEmail(auth, email);
+
+export const addNote = (note: Omit<Note, "id">) => {
+  const notesRef = ref(db, "notes");
+  return push(notesRef, note);
+};
+
+export const getNotes = (callback: (notes: Record<string, Note>) => void) => {
+  const notesRef = ref(db, "notes");
+  return onValue(notesRef, (snapshot) => {
+    const data = snapshot.val();
+    const notesData: Record<string, Note> = {};
+    if (data) {
+      Object.entries(data).forEach(([id, note]: [string, any]) => {
+        notesData[id] = { id, ...note } as Note;
+      });
+    }
+    callback(notesData);
+  });
+};
+
+export const updateNote = (id: string, note: Partial<Note>) => {
+  const noteRef = ref(db, `notes/${id}`);
+  return update(noteRef, note);
+};
+
+export const deleteNote = (id: string) => {
+  const noteRef = ref(db, `notes/${id}`);
+  return remove(noteRef);
+};
